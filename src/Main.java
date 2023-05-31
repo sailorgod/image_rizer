@@ -4,9 +4,14 @@ import java.io.File;
 
 public class Main {
 
+    /**
+     * My processor has four cores
+     */
+
+     private static  String srcFolder = "/users/sortedmap/Desktop/src";
+     private static  String dstFolder = "/users/sortedmap/Desktop/dst";
+
     public static void main(String[] args) {
-        String srcFolder = "/users/sortedmap/Desktop/src";
-        String dstFolder = "/users/sortedmap/Desktop/dst";
 
         File srcDir = new File(srcFolder);
 
@@ -14,38 +19,46 @@ public class Main {
 
         File[] files = srcDir.listFiles();
 
-        try {
-            for (File file : files) {
-                BufferedImage image = ImageIO.read(file);
-                if (image == null) {
-                    continue;
-                }
-
-                int newWidth = 300;
-                int newHeight = (int) Math.round(
-                    image.getHeight() / (image.getWidth() / (double) newWidth)
-                );
-                BufferedImage newImage = new BufferedImage(
-                    newWidth, newHeight, BufferedImage.TYPE_INT_RGB
-                );
-
-                int widthStep = image.getWidth() / newWidth;
-                int heightStep = image.getHeight() / newHeight;
-
-                for (int x = 0; x < newWidth; x++) {
-                    for (int y = 0; y < newHeight; y++) {
-                        int rgb = image.getRGB(x * widthStep, y * heightStep);
-                        newImage.setRGB(x, y, rgb);
-                    }
-                }
-
-                File newFile = new File(dstFolder + "/" + file.getName());
-                ImageIO.write(newImage, "jpg", newFile);
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        int middle = files.length / 2;
+        int quarter1 = middle / 2;
+        int quarter2 = quarter1;
+        if (quarter1 % 2 != 0) {
+           quarter2++;
         }
+        int threeQuarter = files.length - quarter2;
 
-        System.out.println("Duration: " + (System.currentTimeMillis() - start));
+        File[] filesByThread1 = new File[quarter1];
+        ImageResizer imageResizer1
+                = getThread(files, 0, filesByThread1, 0, quarter1);
+        new Thread(imageResizer1).start();
+        System.out.println("Thread 1:  - " + imageResizer1.getFinish());
+
+        File[] filesByThread2 = new File[quarter2];
+        ImageResizer imageResizer2
+                = getThread(files, quarter1, filesByThread2, 0, quarter2);
+        new Thread(imageResizer2).start();
+        System.out.println("Thread 2:  - " + imageResizer2.getFinish());
+
+        File[] filesByThread3 = new File[quarter1];
+        ImageResizer imageResizer3
+                = getThread(files, middle, filesByThread3, 0, quarter1);
+        new Thread(imageResizer3).start();
+        System.out.println("Thread 3:  - " + imageResizer3.getFinish());
+
+        File[] filesByThread4 = new File[quarter2];
+        ImageResizer imageResizer4
+                = getThread(files, threeQuarter, filesByThread4, 0, quarter2);
+        new Thread(imageResizer4).start();
+        System.out.println("Thread 4:  - " + imageResizer4.getFinish());
+
+    }
+
+    private static ImageResizer
+                    getThread(File[] srcFiles, int scrPos, File[] dstFiles, int dstPos, int dstLength)
+    {
+        File [] resultFiles = dstFiles;
+        System.arraycopy(srcFiles, scrPos, resultFiles, dstPos, dstLength);
+        ImageResizer imageResizer = new ImageResizer(resultFiles, dstFolder);
+        return imageResizer;
     }
 }
